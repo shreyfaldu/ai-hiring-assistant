@@ -4,9 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useState } from "react";
 import GoogleAuthButton from "@/components/GoogleAuthButton";
-import { api } from "@/lib/api";
+import { api, isApiError } from "@/lib/api";
 
 type Mode = "login" | "signup";
+
+function setSessionFromAuth(token: string) {
+  localStorage.setItem("hr_token", token);
+  document.cookie = `hr_token=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
+}
 
 export default function AuthForm({ mode }: { mode: Mode }) {
   const router = useRouter();
@@ -24,16 +29,34 @@ export default function AuthForm({ mode }: { mode: Mode }) {
     const name = String(formData.get("name") || "");
 
     try {
-      const res =
-        mode === "signup"
-          ? await api.signup({ name, email, password })
-          : await api.login({ email, password });
+      if (mode === "signup") {
+        const res = await api.signup({ name, email, password });
+        if ("token" in res) {
+          setSessionFromAuth(res.token);
+          router.push("/dashboard");
+          return;
+        }
+        const pending = res;
+        if (pending.devCode) {
+          sessionStorage.setItem("verify_dev_code", pending.devCode);
+        } else {
+          sessionStorage.removeItem("verify_dev_code");
+        }
+        router.push(`/verify-email?email=${encodeURIComponent(pending.email)}`);
+        return;
+      }
 
-      localStorage.setItem("hr_token", res.token);
-      document.cookie = `hr_token=${res.token}; path=/`;
+      const res = await api.login({ email, password });
+      setSessionFromAuth(res.token);
       router.push("/dashboard");
-    } catch (err) {
-      setError((err as Error).message);
+    } catch (err: unknown) {
+      if (isApiError(err) && err.status === 403 && err.payload?.code === "EMAIL_NOT_VERIFIED") {
+        const em = typeof err.payload.email === "string" ? err.payload.email : email;
+        router.push(`/verify-email?email=${encodeURIComponent(em)}`);
+        setError("Please verify your email. We sent you to the verification page.");
+        return;
+      }
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -42,7 +65,11 @@ export default function AuthForm({ mode }: { mode: Mode }) {
   return (
     <div className="card w-full max-w-md p-8">
       <h1 className="font-display text-3xl text-ink">{mode === "signup" ? "Create account" : "Welcome back"}</h1>
-      <p className="mt-2 text-sm text-slate-600">Manage jobs, candidates, and AI hiring flow in one dashboard.</p>
+      <p className="mt-2 text-sm text-slate-600">
+        {mode === "signup"
+          ? "Sign up, verify your email, then sign in anytime."
+          : "Sign in to manage jobs, candidates, and your hiring pipeline."}
+      </p>
       <form className="mt-6 space-y-4" onSubmit={onSubmit}>
         {mode === "signup" && (
           <input
@@ -79,7 +106,7 @@ export default function AuthForm({ mode }: { mode: Mode }) {
       <div className="my-4 h-px bg-brand-100" />
       <GoogleAuthButton />
       <p className="mt-4 text-sm text-slate-600">
-        {mode === "signup" ? "Already have an account?" : "Need an account?"} {" "}
+        {mode === "signup" ? "Already have an account?" : "Need an account?"}{" "}
         <Link className="font-semibold text-brand-700" href={mode === "signup" ? "/login" : "/signup"}>
           {mode === "signup" ? "Login" : "Sign up"}
         </Link>

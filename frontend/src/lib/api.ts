@@ -2,6 +2,25 @@ import { Candidate, JobPayload } from "@/types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
+export type ApiError = Error & {
+  status: number;
+  payload?: {
+    message?: string;
+    code?: string;
+    email?: string;
+    devCode?: string;
+    [key: string]: unknown;
+  };
+};
+
+export function isApiError(err: unknown): err is ApiError {
+  return err instanceof Error && "status" in err && typeof (err as ApiError).status === "number";
+}
+
+export type SignupResponse =
+  | { token: string; user: { id: string; name: string; email: string }; email_verified: true }
+  | { message: string; email: string; devCode?: string };
+
 function authHeaders() {
   if (typeof window === "undefined") {
     return {};
@@ -26,26 +45,56 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
 
   if (!res.ok) {
-    const error = await res.json().catch(() => ({ message: "Request failed" }));
-    throw new Error(error.message || "Request failed");
+    const payload = (await res.json().catch(() => ({ message: "Request failed" }))) as Record<string, unknown>;
+    const message = typeof payload.message === "string" ? payload.message : "Request failed";
+    const err = new Error(message) as ApiError;
+    err.status = res.status;
+    err.payload = payload;
+    throw err;
   }
 
-  return res.json();
+  return res.json() as Promise<T>;
 }
 
 export const api = {
   signup: (payload: { name: string; email: string; password: string }) =>
-    request<{ token: string; user: { id: string; name: string; email: string } }>("/auth/signup", {
+    request<SignupResponse>("/auth/signup", {
       method: "POST",
       body: JSON.stringify(payload)
     }),
   login: (payload: { email: string; password: string }) =>
-    request<{ token: string; user: { id: string; name: string; email: string } }>("/auth/login", {
+    request<{ token: string; user: { id: string; name: string; email: string }; email_verified?: boolean }>(
+      "/auth/login",
+      {
+        method: "POST",
+        body: JSON.stringify(payload)
+      }
+    ),
+  verifyEmail: (payload: { email: string; code: string }) =>
+    request<{ token: string; user: { id: string; name: string; email: string }; message?: string }>(
+      "/auth/verify-email",
+      {
+        method: "POST",
+        body: JSON.stringify(payload)
+      }
+    ),
+  resendVerification: (payload: { email: string }) =>
+    request<{ message: string; devCode?: string }>("/auth/resend-verification", {
       method: "POST",
       body: JSON.stringify(payload)
     }),
+  me: () =>
+    request<{
+      user: {
+        id: string;
+        name: string;
+        email: string;
+        profile_picture: string | null;
+        email_verified: boolean;
+      };
+    }>("/auth/me"),
   createJob: (payload: JobPayload) =>
-    request<{ job: { id: string; job_description: string; public_url: string } }>("/jobs", {
+    request<{ job: { id: string; title?: string; job_description: string; public_url: string } }>("/jobs", {
       method: "POST",
       body: JSON.stringify(payload)
     }),
