@@ -3,7 +3,7 @@ import { randomInt } from "node:crypto";
 import { Request, Response } from "express";
 import { v4 as uuidv4 } from "uuid";
 import { env } from "../config/env.js";
-import { pool, useDemo, mockUsers } from "../config/db.js";
+import { pool, useDemo, mockUsers, mockJobs, mockCandidates } from "../config/db.js";
 import { isSmtpConfigured, sendVerificationEmail } from "../services/email.service.js";
 import { signToken } from "../utils/jwt.js";
 
@@ -16,6 +16,20 @@ function mockUserById(id: string) {
     }
   }
   return null;
+}
+
+type StepRow = { step_name: string; step_order: number; status: string };
+
+function pipelineSummary(steps: StepRow[], applicationCount: number) {
+  const total = steps.length || 6;
+  const completed = steps.filter((s) => s.status === "completed").length;
+  const active = steps.find((s) => s.status === "active");
+  return {
+    total_steps: total,
+    completed_steps: completed,
+    current_step_name: active?.step_name ?? (steps[0]?.step_name ?? "Create Job"),
+    application_count: applicationCount
+  };
 }
 
 export async function signup(req: Request, res: Response) {
@@ -256,6 +270,30 @@ export async function getMe(req: Request, res: Response) {
     if (!u) {
       return res.status(404).json({ message: "User not found" });
     }
+
+    const myJobs = [...mockJobs.values()]
+      .filter((j) => j.hr_id === userId)
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
+
+    const lastCreated = myJobs[0]?.created_at ?? null;
+    const recent_jobs = myJobs.slice(0, 10).map((j) => {
+      const apps = (mockCandidates.get(j.id) as unknown[] | undefined)?.length ?? 0;
+      const posted = Boolean((j as { posted?: boolean }).posted);
+      return {
+        id: j.id,
+        title: j.title,
+        created_at: j.created_at,
+        public_url: j.public_url,
+        posted,
+        pipeline: {
+          total_steps: 6,
+          completed_steps: posted ? 3 : 2,
+          current_step_name: posted ? "Applications" : "Publish Job",
+          application_count: apps
+        }
+      };
+    });
+
     return res.json({
       user: {
         id: u.id,
@@ -263,7 +301,12 @@ export async function getMe(req: Request, res: Response) {
         email: u.email,
         profile_picture: u.profile_picture ?? null,
         email_verified: true
-      }
+      },
+      jobs_stats: {
+        total: myJobs.length,
+        last_created_at: lastCreated
+      },
+      recent_jobs
     });
   }
 
@@ -277,6 +320,60 @@ export async function getMe(req: Request, res: Response) {
   }
 
   const row = result.rows[0];
+
+  const statsResult = await pool.query(
+    `SELECT COUNT(*)::int AS total, MAX(created_at) AS last_created_at FROM jobs WHERE hr_id = $1`,
+    [userId]
+  );
+
+  const recentResult = await pool.query(
+    `SELECT j.id, j.title, j.created_at, j.public_url, j.posted,
+            COUNT(c.id)::int AS application_count
+     FROM jobs j
+     LEFT JOIN candidates c ON c.job_id = j.id
+     WHERE j.hr_id = $1
+     GROUP BY j.id
+     ORDER BY j.created_at DESC
+     LIMIT 10`,
+    [userId]
+  );
+
+  const jobIds = recentResult.rows.map((r: { id: string }) => r.id);
+  const stepsByJob: Record<string, StepRow[]> = {};
+  if (jobIds.length > 0) {
+    const stepRows = await pool.query(
+      `SELECT job_id, step_name, step_order, status FROM job_steps WHERE job_id = ANY($1::uuid[]) ORDER BY job_id, step_order`,
+      [jobIds]
+    );
+    for (const s of stepRows.rows) {
+      const jid = s.job_id as string;
+      if (!stepsByJob[jid]) stepsByJob[jid] = [];
+      stepsByJob[jid].push({
+        step_name: s.step_name,
+        step_order: s.step_order,
+        status: s.status
+      });
+    }
+  }
+
+  type RecentJobRow = {
+    id: string;
+    title: string;
+    created_at: Date;
+    public_url: string;
+    posted: boolean;
+    application_count: number;
+  };
+
+  const recent_jobs = (recentResult.rows as RecentJobRow[]).map((r) => ({
+    id: r.id,
+    title: r.title,
+    created_at: r.created_at,
+    public_url: r.public_url,
+    posted: r.posted,
+    pipeline: pipelineSummary(stepsByJob[r.id] ?? [], r.application_count)
+  }));
+
   return res.json({
     user: {
       id: row.id,
@@ -284,6 +381,11 @@ export async function getMe(req: Request, res: Response) {
       email: row.email,
       profile_picture: row.profile_picture,
       email_verified: row.email_verified
-    }
+    },
+    jobs_stats: {
+      total: statsResult.rows[0]?.total ?? 0,
+      last_created_at: statsResult.rows[0]?.last_created_at ?? null
+    },
+    recent_jobs
   });
 }
