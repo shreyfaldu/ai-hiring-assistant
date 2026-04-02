@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import CandidateTable from "@/components/CandidateTable";
 import JobCreationForm from "@/components/JobCreationForm";
 import PipelineStepper from "@/components/PipelineStepper";
 import { downloadJobDescriptionPdf } from "@/lib/download-jd-pdf";
+import { api } from "@/lib/api";
 
 type CreatedJob = {
   id: string;
@@ -20,6 +21,41 @@ export default function DashboardPage() {
   const [job, setJob] = useState<CreatedJob | null>(null);
   const [posted, setPosted] = useState(false);
   const [pdfLoading, setPdfLoading] = useState(false);
+  const [resumeLoading, setResumeLoading] = useState(false);
+  const [markPostedLoading, setMarkPostedLoading] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const jobId = new URLSearchParams(window.location.search).get("jobId");
+    if (!jobId) return;
+
+    let cancelled = false;
+    setResumeLoading(true);
+    (async () => {
+      try {
+        const { job: j } = await api.getJobResume(jobId);
+        if (cancelled) return;
+        setJob({
+          id: j.id,
+          title: j.title,
+          job_description: j.job_description,
+          public_url: j.public_url
+        });
+        setPosted(Boolean(j.posted));
+        window.history.replaceState({}, "", "/dashboard");
+      } catch {
+        if (!cancelled) {
+          router.replace("/dashboard");
+        }
+      } finally {
+        if (!cancelled) setResumeLoading(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
 
   const activeStep = useMemo(() => {
     if (!job) {
@@ -39,6 +75,9 @@ export default function DashboardPage() {
 
   return (
     <main className="mx-auto w-full max-w-7xl space-y-6 px-4 py-8 md:px-8">
+      {resumeLoading && (
+        <p className="rounded-xl border border-brand-100 bg-slate-50 px-4 py-3 text-sm text-slate-600">Loading job…</p>
+      )}
       <header className="card flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
         <div>
           <h1 className="font-display text-3xl text-ink">Hiring Assistant Dashboard</h1>
@@ -56,7 +95,12 @@ export default function DashboardPage() {
 
       <PipelineStepper activeStep={activeStep} />
 
-      <JobCreationForm onCreated={setJob} />
+      <JobCreationForm
+        onCreated={(j) => {
+          setPosted(false);
+          setJob(j);
+        }}
+      />
 
       {job && (
         <section className="card p-6">
@@ -94,10 +138,21 @@ export default function DashboardPage() {
               </a>
               <button
                 type="button"
-                onClick={() => setPosted(true)}
-                className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white"
+                disabled={markPostedLoading || posted}
+                onClick={async () => {
+                  setMarkPostedLoading(true);
+                  try {
+                    await api.markJobPosted(job.id);
+                    setPosted(true);
+                  } catch {
+                    /* keep UI; user can retry */
+                  } finally {
+                    setMarkPostedLoading(false);
+                  }
+                }}
+                className="rounded-lg bg-brand-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-60"
               >
-                Mark as Posted
+                {posted ? "Posted" : markPostedLoading ? "Saving…" : "Mark as Posted"}
               </button>
             </div>
           </div>
