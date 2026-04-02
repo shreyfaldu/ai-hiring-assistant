@@ -21,6 +21,33 @@ export type SignupResponse =
   | { token: string; user: { id: string; name: string; email: string }; email_verified: true }
   | { message: string; email: string; devCode?: string };
 
+export type MeResponse = {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    profile_picture: string | null;
+    email_verified: boolean;
+  };
+  jobs_stats: {
+    total: number;
+    last_created_at: string | null;
+  };
+  recent_jobs: {
+    id: string;
+    title: string;
+    created_at: string;
+    public_url: string;
+    posted: boolean;
+    pipeline: {
+      total_steps: number;
+      completed_steps: number;
+      current_step_name: string;
+      application_count: number;
+    };
+  }[];
+};
+
 function authHeaders() {
   if (typeof window === "undefined") {
     return {};
@@ -83,16 +110,19 @@ export const api = {
       method: "POST",
       body: JSON.stringify(payload)
     }),
-  me: () =>
+  me: () => request<MeResponse>("/auth/me"),
+  getJobResume: (jobId: string) =>
     request<{
-      user: {
+      job: {
         id: string;
-        name: string;
-        email: string;
-        profile_picture: string | null;
-        email_verified: boolean;
+        title: string;
+        job_description: string;
+        public_url: string;
+        posted: boolean;
       };
-    }>("/auth/me"),
+    }>(`/jobs/${jobId}/resume`),
+  markJobPosted: (jobId: string) =>
+    request<{ ok: boolean; posted: boolean }>(`/jobs/${jobId}/posted`, { method: "POST" }),
   createJob: (payload: JobPayload) =>
     request<{ job: { id: string; title?: string; job_description: string; public_url: string } }>("/jobs", {
       method: "POST",
