@@ -17,7 +17,7 @@ const initialState: JobPayload = {
 export default function JobCreationForm({
   onCreated
 }: {
-  onCreated: (payload: { id: string; job_description: string; public_url: string }) => void;
+  onCreated: (payload: { id: string; title?: string; job_description: string; public_url: string }) => void;
 }) {
   const [form, setForm] = useState(initialState);
   const [loading, setLoading] = useState(false);
