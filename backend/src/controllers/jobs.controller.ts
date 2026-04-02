@@ -35,6 +35,7 @@ export async function createJob(req: Request, res: Response) {
       job_type,
       job_description,
       public_url: publicUrl,
+      posted: false,
       created_at: new Date()
     });
 
@@ -96,4 +97,65 @@ export async function getJobById(req: Request, res: Response) {
   }
 
   return res.json({ job: result.rows[0] });
+}
+
+export async function getJobResume(req: Request, res: Response) {
+  const userId = req.user?.id;
+  const { id } = req.params;
+  if (!userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  if (useDemo) {
+    const job = mockJobs.get(id);
+    if (!job || job.hr_id !== userId) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    return res.json({
+      job: {
+        id: job.id,
+        title: job.title,
+        job_description: job.job_description,
+        public_url: job.public_url,
+        posted: Boolean((job as { posted?: boolean }).posted)
+      }
+    });
+  }
+
+  const result = await pool.query(
+    `SELECT id, title, job_description, public_url, posted FROM jobs WHERE id = $1 AND hr_id = $2`,
+    [id, userId]
+  );
+  if (result.rows.length === 0) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+
+  return res.json({ job: result.rows[0] });
+}
+
+export async function markJobPosted(req: Request, res: Response) {
+  const userId = req.user?.id;
+  const { id } = req.params;
+  if (!userId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
+
+  if (useDemo) {
+    const job = mockJobs.get(id);
+    if (!job || job.hr_id !== userId) {
+      return res.status(403).json({ message: "Forbidden" });
+    }
+    mockJobs.set(id, { ...job, posted: true });
+    return res.json({ ok: true, posted: true });
+  }
+
+  const updated = await pool.query(
+    `UPDATE jobs SET posted = true WHERE id = $1 AND hr_id = $2 RETURNING id`,
+    [id, userId]
+  );
+  if (updated.rowCount === 0) {
+    return res.status(403).json({ message: "Forbidden" });
+  }
+
+  return res.json({ ok: true, posted: true });
 }
