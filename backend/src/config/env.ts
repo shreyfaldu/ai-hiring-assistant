@@ -41,5 +41,15 @@ export const env = {
   AWS_SECRET_ACCESS_KEY: requireEnv("AWS_SECRET_ACCESS_KEY"),
   GEMINI_API_KEY: requireEnv("GEMINI_API_KEY"),
   /** Gemini API model id (e.g. gemini-2.5-flash). Override if Google renames endpoints. */
-  GEMINI_MODEL: process.env.GEMINI_MODEL || "gemini-2.5-flash"
+  GEMINI_MODEL: process.env.GEMINI_MODEL || "gemini-2.5-flash",
+  /**
+   * SMTP: all of SMTP_HOST + SMTP_USER + SMTP_PASS must be set to send verification mail.
+   * @see smtp.requirements.ts
+   */
+  SMTP_HOST: process.env.SMTP_HOST || "",
+  SMTP_PORT: Number(process.env.SMTP_PORT || 587),
+  SMTP_SECURE: envTruthy("SMTP_SECURE"),
+  SMTP_USER: process.env.SMTP_USER || "",
+  SMTP_PASS: process.env.SMTP_PASS || "",
+  EMAIL_FROM: process.env.EMAIL_FROM || "noreply@localhost"
 };
