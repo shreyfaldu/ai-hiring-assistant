@@ -7,6 +7,9 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash TEXT,
   google_id TEXT UNIQUE,
   profile_picture TEXT,
+  email_verified BOOLEAN NOT NULL DEFAULT FALSE,
+  verification_code TEXT,
+  verification_code_expires_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
