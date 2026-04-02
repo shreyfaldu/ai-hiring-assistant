@@ -16,7 +16,7 @@ npm install
 - `backend/.env`
 - `frontend/.env.local`
 
-Use the sample files in each app.
+Use the sample files in each app. For **email/password sign-up**, configure **SMTP** in `backend/.env` (`SMTP_HOST`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`) — see `backend/src/config/smtp.requirements.ts` and **SMTP** in `backend/README.md`.
 
 3. Create database schema:
 
@@ -31,6 +31,6 @@ npm run dev
 ```
 
 Frontend runs on `http://localhost:3000`.
-Backend runs on `http://localhost:5000`.
+Backend runs on `http://localhost:8000` by default (see `PORT` in `backend/.env`).
 
 See `backend/README.md` for OAuth and Gemini setup details.
