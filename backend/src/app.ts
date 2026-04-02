@@ -1,5 +1,7 @@
 import cors from "cors";
 import express from "express";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { env } from "./config/env.js";
 import passport from "./config/passport.js";
 import aiRoutes from "./routes/ai.routes.js";
@@ -18,6 +20,19 @@ app.use(
 app.use(express.json({ limit: "2mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(passport.initialize());
+
+if (env.S3_SKIP) {
+  const uploadsDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../uploads");
+  app.use(
+    "/api/local-uploads",
+    express.static(uploadsDir, {
+      fallthrough: false,
+      setHeaders(res) {
+        res.setHeader("Cache-Control", "private, max-age=3600");
+      }
+    })
+  );
+}
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true });
