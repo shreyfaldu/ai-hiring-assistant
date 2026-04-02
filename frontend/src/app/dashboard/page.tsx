@@ -1,13 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import CandidateTable from "@/components/CandidateTable";
 import JobCreationForm from "@/components/JobCreationForm";
 import PipelineStepper from "@/components/PipelineStepper";
+import { downloadJobDescriptionPdf } from "@/lib/download-jd-pdf";
 
 type CreatedJob = {
   id: string;
+  title?: string;
   job_description: string;
   public_url: string;
 };
@@ -16,6 +19,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const [job, setJob] = useState<CreatedJob | null>(null);
   const [posted, setPosted] = useState(false);
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   const activeStep = useMemo(() => {
     if (!job) {
@@ -29,7 +33,7 @@ export default function DashboardPage() {
 
   const logout = () => {
     localStorage.removeItem("hr_token");
-    document.cookie = "hr_token=; Max-Age=0; path=/";
+    document.cookie = "hr_token=; Max-Age=0; path=/; SameSite=Lax";
     router.push("/login");
   };
 
@@ -40,9 +44,14 @@ export default function DashboardPage() {
           <h1 className="font-display text-3xl text-ink">Hiring Assistant Dashboard</h1>
           <p className="mt-1 text-sm text-slate-600">Create roles, publish AI-generated JD, and score applicants.</p>
         </div>
-        <button onClick={logout} type="button" className="rounded-xl border border-brand-100 px-4 py-2 text-sm font-semibold">
-          Logout
-        </button>
+        <div className="flex flex-wrap gap-2">
+          <Link href="/profile" className="rounded-xl border border-brand-100 px-4 py-2 text-sm font-semibold text-ink">
+            Profile
+          </Link>
+          <button onClick={logout} type="button" className="rounded-xl border border-brand-100 px-4 py-2 text-sm font-semibold">
+            Logout
+          </button>
+        </div>
       </header>
 
       <PipelineStepper activeStep={activeStep} />
@@ -53,13 +62,28 @@ export default function DashboardPage() {
         <section className="card p-6">
           <div className="mb-4 flex items-start justify-between gap-4">
             <h2 className="font-display text-xl">Publish Job</h2>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
                 className="rounded-lg border border-brand-100 px-3 py-2 text-sm font-semibold"
                 onClick={() => navigator.clipboard.writeText(job.job_description)}
               >
                 Copy
+              </button>
+              <button
+                type="button"
+                disabled={pdfLoading}
+                className="rounded-lg border border-brand-100 px-3 py-2 text-sm font-semibold disabled:opacity-60"
+                onClick={async () => {
+                  setPdfLoading(true);
+                  try {
+                    await downloadJobDescriptionPdf(job.title || "Job Description", job.job_description);
+                  } finally {
+                    setPdfLoading(false);
+                  }
+                }}
+              >
+                {pdfLoading ? "Preparing PDF…" : "Download PDF"}
               </button>
               <a
                 href="https://www.linkedin.com/feed/"
