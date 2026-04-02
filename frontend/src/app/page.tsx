@@ -1,7 +1,6 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
+/** Always start at login; RedirectIfAuthed on that page sends valid sessions to the dashboard. */
 export default function Home() {
-  const hasToken = cookies().get("hr_token")?.value;
-  redirect(hasToken ? "/dashboard" : "/login");
+  redirect("/login");
 }

@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const protectedRoutes = ["/dashboard"];
+const protectedPrefixes = ["/dashboard", "/profile"];
 
 export function middleware(req: NextRequest) {
-  if (protectedRoutes.some((route) => req.nextUrl.pathname.startsWith(route))) {
+  const { pathname } = req.nextUrl;
+  const isProtected = protectedPrefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+
+  if (isProtected) {
     const token = req.cookies.get("hr_token")?.value;
     if (!token) {
       const loginUrl = new URL("/login", req.url);
+      loginUrl.searchParams.set("next", pathname);
       return NextResponse.redirect(loginUrl);
     }
   }
@@ -15,5 +19,5 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/dashboard/:path*"]
+  matcher: ["/dashboard", "/dashboard/:path*", "/profile", "/profile/:path*"]
 };
