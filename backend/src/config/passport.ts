@@ -63,7 +63,7 @@ passport.use(
           const user = existing.rows[0];
           if (!user.google_id) {
             await pool.query(
-              "UPDATE users SET google_id = $1, profile_picture = COALESCE($2, profile_picture), name = COALESCE(name, $3) WHERE id = $4",
+              "UPDATE users SET google_id = $1, profile_picture = COALESCE($2, profile_picture), name = COALESCE(name, $3), email_verified = true WHERE id = $4",
               [googleId, picture, name, user.id]
             );
           }
@@ -76,8 +76,8 @@ passport.use(
         }
 
         const created = await pool.query(
-          `INSERT INTO users (name, email, google_id, profile_picture)
-           VALUES ($1, $2, $3, $4)
+          `INSERT INTO users (name, email, google_id, profile_picture, email_verified)
+           VALUES ($1, $2, $3, $4, true)
            RETURNING id, name, email`,
           [name, email, googleId, picture]
         );
