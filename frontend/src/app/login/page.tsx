@@ -1,11 +1,14 @@
 import AuthForm from "@/components/AuthForm";
+import AuthSplitLayout from "@/components/auth/AuthSplitLayout";
 import RedirectIfAuthed from "@/components/RedirectIfAuthed";
 
 export default function LoginPage() {
   return (
     <RedirectIfAuthed>
-      <main className="mx-auto flex min-h-screen w-full max-w-5xl items-center justify-center px-4 py-10">
-        <AuthForm mode="login" />
+      <main>
+        <AuthSplitLayout>
+          <AuthForm mode="login" />
+        </AuthSplitLayout>
       </main>
     </RedirectIfAuthed>
   );
