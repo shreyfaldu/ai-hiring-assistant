@@ -1,6 +1,6 @@
 import { Candidate, JobPayload } from "@/types";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+export const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 export type ApiError = Error & {
   status: number;
@@ -116,15 +116,33 @@ export const api = {
       job: {
         id: string;
         title: string;
+        experience?: string | null;
+        skills?: string | null;
+        location?: string | null;
+        salary?: string | null;
+        job_type?: string | null;
         job_description: string;
         public_url: string;
         posted: boolean;
+        active_pipeline_index?: number;
       };
     }>(`/jobs/${jobId}/resume`),
   markJobPosted: (jobId: string) =>
     request<{ ok: boolean; posted: boolean }>(`/jobs/${jobId}/posted`, { method: "POST" }),
   createJob: (payload: JobPayload) =>
-    request<{ job: { id: string; title?: string; job_description: string; public_url: string } }>("/jobs", {
+    request<{
+      job: {
+        id: string;
+        title?: string;
+        experience?: string | null;
+        skills?: string | null;
+        location?: string | null;
+        salary?: string | null;
+        job_type?: string | null;
+        job_description: string;
+        public_url: string;
+      };
+    }>("/jobs", {
       method: "POST",
       body: JSON.stringify(payload)
     }),
