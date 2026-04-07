@@ -9,16 +9,81 @@
   --surface: #ffffff;
   --text: #0c1d17;
   --muted: #507268;
+
+  --app-page: #f0f2f5;
+  --app-bg: #f4f6f9;
+  --app-surface: #ffffff;
+  --app-surface-2: #f8f9fa;
+  --app-border: #e8eaed;
+  --app-border-strong: #dadce0;
+  --app-text: #202124;
+  --app-muted: #80868b;
+  --app-subtle: #5f6368;
+  --app-input: #f1f3f4;
+  --app-input-focus: #e8eaed;
+  --app-hover: #f1f3f4;
+  --app-hover-strong: #f8f9fa;
+  --app-accent-rgb: 26 115 232;
+  --app-accent-hover: #1557b0;
+  --app-nav-active-bg: #e8f0fe;
+  --app-nav-active-text: #1a73e8;
+  --app-success-text: #1e8e3e;
+  --app-success-bg: #e6f4ea;
+  --app-danger: #ea4335;
+  --app-overlay: rgba(0, 0, 0, 0.25);
+  --app-accent-faint: rgb(26 115 232 / 0.12);
+  --app-ring-selected: rgb(26 115 232 / 0.35);
+  --app-conic-track: #e8eaed;
+}
+
+.dark {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --text: #e6edf3;
+  --muted: #8b949e;
+
+  --app-page: #0d1117;
+  --app-bg: #0d1117;
+  --app-surface: #161b22;
+  --app-surface-2: #21262d;
+  --app-border: #30363d;
+  --app-border-strong: #484f58;
+  --app-text: #e6edf3;
+  --app-muted: #8b949e;
+  --app-subtle: #8b949e;
+  --app-input: #0d1117;
+  --app-input-focus: #21262d;
+  --app-hover: #21262d;
+  --app-hover-strong: #30363d;
+  --app-accent-rgb: 88 166 255;
+  --app-accent-hover: #79b8ff;
+  --app-nav-active-bg: rgb(88 166 255 / 0.15);
+  --app-nav-active-text: #58a6ff;
+  --app-success-text: #3fb950;
+  --app-success-bg: rgb(46 160 67 / 0.18);
+  --app-danger: #f85149;
+  --app-overlay: rgba(0, 0, 0, 0.6);
+  --app-accent-faint: rgb(88 166 255 / 0.18);
+  --app-ring-selected: rgb(88 166 255 / 0.45);
+  --app-conic-track: #30363d;
 }
 
 body {
+  background-color: var(--app-page);
+  color: var(--app-text);
+}
+
+html:not(.dark) body {
   background:
-    radial-gradient(circle at 10% 0%, rgba(15, 139, 109, 0.15), transparent 35%),
-    radial-gradient(circle at 90% 100%, rgba(53, 164, 136, 0.18), transparent 40%),
-    var(--bg);
-  color: var(--text);
+    radial-gradient(circle at 10% 0%, rgba(15, 139, 109, 0.12), transparent 38%),
+    radial-gradient(circle at 90% 100%, rgba(53, 164, 136, 0.14), transparent 42%),
+    var(--app-page);
 }
 
 .card {
-  @apply rounded-2xl bg-white/95 shadow-soft border border-brand-100;
+  @apply rounded-2xl border border-brand-100 bg-white/95 shadow-soft;
+}
+
+.dark .card {
+  @apply border-app-border bg-app-surface shadow-none;
 }
