@@ -69,8 +69,8 @@ export default function VerifyEmailForm() {
 
   return (
     <div className="card w-full max-w-md p-8">
-      <h1 className="font-display text-3xl text-ink">Verify your email</h1>
-      <p className="mt-2 text-sm text-slate-600">
+      <h1 className="font-display text-3xl text-app-text">Verify your email</h1>
+      <p className="mt-2 text-sm text-app-muted">
         Enter the 6-digit code we sent to your inbox. After verification you can open the dashboard.
       </p>
       {devHint && (
@@ -83,7 +83,7 @@ export default function VerifyEmailForm() {
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          className="w-full rounded-xl border border-brand-100 px-4 py-3 text-sm focus:border-brand-500 focus:outline-none"
+          className="w-full rounded-xl border border-app-border bg-app-surface px-4 py-3 text-sm text-app-text focus:border-app-accent focus:outline-none"
         />
         <input
           type="text"
@@ -94,14 +94,14 @@ export default function VerifyEmailForm() {
           required
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
-          className="w-full rounded-xl border border-brand-100 px-4 py-3 text-sm tracking-widest focus:border-brand-500 focus:outline-none"
+          className="w-full rounded-xl border border-app-border bg-app-surface px-4 py-3 text-sm tracking-widest text-app-text focus:border-app-accent focus:outline-none"
         />
-        {error && <p className="text-sm text-red-600">{error}</p>}
-        {resendMsg && <p className="text-sm text-green-700">{resendMsg}</p>}
+        {error && <p className="text-sm text-red-600 dark:text-app-danger">{error}</p>}
+        {resendMsg && <p className="text-sm text-green-700 dark:text-app-success">{resendMsg}</p>}
         <button
           type="submit"
           disabled={loading || code.length !== 6}
-          className="w-full rounded-xl bg-brand-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-brand-700 disabled:opacity-60"
+          className="w-full rounded-xl bg-app-accent px-4 py-3 text-sm font-semibold text-white transition hover:bg-app-accent-hover disabled:opacity-60"
         >
           {loading ? "Please wait..." : "Verify and continue"}
         </button>
@@ -110,12 +110,12 @@ export default function VerifyEmailForm() {
         type="button"
         disabled={loading || !email.trim()}
         onClick={onResend}
-        className="mt-4 w-full rounded-xl border border-brand-100 px-4 py-3 text-sm font-semibold text-ink hover:bg-slate-50 disabled:opacity-60"
+        className="mt-4 w-full rounded-xl border border-app-border px-4 py-3 text-sm font-semibold text-app-text hover:bg-app-hover-strong disabled:opacity-60"
       >
         Resend code
       </button>
-      <p className="mt-6 text-center text-sm text-slate-600">
-        <Link href="/login" className="font-semibold text-brand-700">
+      <p className="mt-6 text-center text-sm text-app-muted">
+        <Link href="/login" className="font-semibold text-app-nav-active-text">
           Back to login
         </Link>
       </p>
