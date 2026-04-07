@@ -4,7 +4,16 @@ import { useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Candidate } from "@/types";
 
-export default function CandidateTable({ jobId }: { jobId: string }) {
+export default function CandidateTable({
+  jobId,
+  embedded,
+  variant
+}: {
+  jobId: string;
+  embedded?: boolean;
+  variant?: "default" | "dashboard";
+}) {
+  const dash = variant === "dashboard";
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [loading, setLoading] = useState(false);
 
@@ -29,54 +38,77 @@ export default function CandidateTable({ jobId }: { jobId: string }) {
     }
   }, [jobId]);
 
+  const th = dash
+    ? "border-b border-app-border pb-3 pr-3 text-left text-[11px] font-semibold uppercase tracking-wide text-app-muted"
+    : "border-b border-neutral-200 text-left text-[11px] font-medium uppercase tracking-wide text-neutral-400";
+  const td = dash ? "py-3 pr-3 text-sm text-app-text" : "py-2.5 pr-2 text-neutral-800";
+  const tdMuted = dash ? "py-3 pr-3 text-sm text-app-subtle" : "py-2.5 pr-2 text-neutral-600";
+
   return (
-    <section className="card p-6">
+    <section className={embedded && !dash ? "" : embedded && dash ? "p-6" : "card p-6"}>
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="font-display text-xl">Candidates</h2>
+        <h2 className={dash ? "text-sm font-semibold text-app-text" : "text-sm font-medium text-neutral-900"}>Candidates</h2>
         <button
-          className="rounded-lg border border-brand-100 px-3 py-2 text-xs font-semibold"
-          onClick={() => loadCandidates()}
           type="button"
+          className={
+            dash
+              ? "text-xs font-medium text-app-nav-active-text hover:underline"
+              : "text-xs text-neutral-500 underline-offset-2 hover:text-neutral-900 hover:underline"
+          }
+          onClick={() => loadCandidates()}
         >
           Refresh
         </button>
       </div>
       {loading ? (
-        <p className="text-sm text-slate-600">Loading candidates...</p>
+        <p className={dash ? "text-sm text-app-muted" : "text-sm text-neutral-500"}>Loading…</p>
       ) : candidates.length === 0 ? (
-        <p className="text-sm text-slate-600">No applications yet.</p>
+        <p className={dash ? "text-sm text-app-muted" : "text-sm text-neutral-500"}>No applications yet.</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead>
-              <tr className="text-left text-slate-500">
-                <th className="pb-2">Name</th>
-                <th className="pb-2">Email</th>
-                <th className="pb-2">Resume</th>
-                <th className="pb-2">Match %</th>
-                <th className="pb-2">Summary</th>
-                <th className="pb-2">Action</th>
+              <tr className={dash ? "" : ""}>
+                <th className={`${th} ${dash ? "" : "pb-2"}`}>Name</th>
+                <th className={`${th} ${dash ? "" : "pb-2"}`}>Email</th>
+                <th className={`${th} ${dash ? "" : "pb-2"}`}>Resume</th>
+                <th className={`${th} ${dash ? "" : "pb-2"}`}>Match</th>
+                <th className={`${th} ${dash ? "" : "pb-2"}`}>Summary</th>
+                <th className={dash ? th : `${th} pb-2`}>Action</th>
               </tr>
             </thead>
             <tbody>
               {candidates.map((candidate) => (
-                <tr key={candidate.id} className="border-t border-slate-100">
-                  <td className="py-3">{candidate.name}</td>
-                  <td className="py-3">{candidate.email}</td>
-                  <td className="py-3">
-                    <a href={candidate.resume_url} className="text-brand-700 underline" target="_blank">
-                      View Resume
+                <tr key={candidate.id} className={dash ? "border-b border-app-border" : "border-b border-neutral-100"}>
+                  <td className={td}>{candidate.name}</td>
+                  <td className={tdMuted}>{candidate.email}</td>
+                  <td className={tdMuted}>
+                    <a
+                      href={candidate.resume_url}
+                      className={
+                        dash
+                          ? "text-xs font-medium text-app-nav-active-text hover:underline"
+                          : "text-xs text-neutral-900 underline underline-offset-2"
+                      }
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Resume
                     </a>
                   </td>
-                  <td className="py-3">{candidate.score?.match_score ?? "-"}</td>
-                  <td className="py-3">{candidate.score?.summary ?? "Not scored"}</td>
-                  <td className="py-3">
+                  <td className={tdMuted}>{candidate.score?.match_score ?? "—"}</td>
+                  <td className={`max-w-[200px] truncate ${tdMuted}`}>{candidate.score?.summary ?? "—"}</td>
+                  <td className={dash ? "py-3" : "py-2.5"}>
                     <button
                       type="button"
                       onClick={() => scoreCandidate(candidate.id)}
-                      className="rounded-lg bg-brand-600 px-3 py-2 text-xs font-semibold text-white"
+                      className={
+                        dash
+                          ? "rounded-lg border border-app-border-strong px-3 py-1.5 text-xs font-medium text-app-text hover:bg-app-hover-strong"
+                          : "rounded-md border border-neutral-200 px-2 py-1 text-[11px] font-medium text-neutral-800 hover:bg-neutral-50"
+                      }
                     >
-                      Score with AI
+                      Score
                     </button>
                   </td>
                 </tr>
